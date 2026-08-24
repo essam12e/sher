@@ -8,7 +8,19 @@ export function SettingsClient() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetch("/api/settings").then((r) => r.json()).then(setSettings).catch(() => undefined);
+    fetch("/api/settings")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (
+          data &&
+          typeof data.minWidth === "number" &&
+          typeof data.minHeight === "number" &&
+          typeof data.maxFileSizeMb === "number"
+        ) {
+          setSettings(data);
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   async function save() {
