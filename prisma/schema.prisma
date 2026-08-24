@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id        String        @id @default(cuid())
+  sku       String?
+  name      String
+  brand     String?
+  model     String?
+  color     String?
+  variant   String?
+  createdAt DateTime      @default(now())
+
+  searchSessions SearchSession[]
+  hostedImages   HostedImage[]
+
+  @@index([sku])
+  @@index([name])
+}
+
+model SearchSession {
+  id        String   @id @default(cuid())
+  query     String
+  productId String?
+  createdAt DateTime @default(now())
+
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model HostedImage {
+  id                  String   @id @default(cuid())
+  productId           String
+  sourceUrl           String
+  storageKey          String   @unique
+  publicUrl           String
+  hash                String   @unique
+  width               Int
+  height              Int
+  mimeType            String
+  fileSize            Int
+  matchScore          Int
+  qualityScore        Int
+  watermarkStatus     String
+  compatibilityStatus String
+  compatibilityReport Json
+  createdAt           DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([compatibilityStatus])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
