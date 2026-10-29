@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 import { apiError } from "@/lib/api";
 import { prisma } from "@/lib/db";
@@ -25,7 +26,10 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, "settings", 10, 60);
+  if (limited) return limited;
+
   try {
     const body = schema.parse(await request.json());
     await prisma.$transaction([

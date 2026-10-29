@@ -27,11 +27,3 @@ test("ssrf protection blocks IPv4-mapped IPv6 and reserved ranges", () => {
   assert.equal(isBlockedIp("::ffff:8.8.8.8"), false);
   assert.equal(isBlockedIp("2606:4700::1111"), false);
 });
-
-test("login redirect only allows internal paths", () => {
-  const { safeNextPath } = require("@/lib/redirect");
-  assert.equal(safeNextPath("/library"), "/library");
-  assert.equal(safeNextPath("https://evil.com"), "/");
-  assert.equal(safeNextPath("//evil.com"), "/");
-  assert.equal(safeNextPath(null), "/");
-});

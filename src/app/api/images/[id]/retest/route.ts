@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/db";
 import { validatePublicImageUrl } from "@/lib/image/validation";
 import { apiError } from "@/lib/api";
@@ -7,7 +8,10 @@ import { getRuntimeImageLimits } from "@/lib/settings";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const limited = await enforceRateLimit(request, "image-retest", 30, 60);
+  if (limited) return limited;
+
   try {
     const { id } = await context.params;
     const image = await prisma.hostedImage.findUnique({ where: { id } });

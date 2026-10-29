@@ -21,7 +21,6 @@
 - Vercel Blob
 - Sharp لمعالجة الصور
 - ExcelJS لاستيراد وتصدير ملفات Excel
-- JWT Cookie Authentication
 - Upstash Redis اختياري للـ Rate Limiting في الإنتاج
 
 ## Search Provider
@@ -85,23 +84,12 @@ IMAGE_SEARCH_PROVIDER=
 IMAGE_SEARCH_API_KEY=
 STORAGE_PROVIDER=
 BLOB_READ_WRITE_TOKEN=
-AUTH_SECRET=
-ADMIN_EMAIL=
-ADMIN_PASSWORD_HASH=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 MIN_IMAGE_WIDTH=500
 MIN_IMAGE_HEIGHT=500
 MAX_IMAGE_FILE_SIZE_MB=15
 ```
-
-لإنشاء كلمة مرور المدير:
-
-```bash
-npm run auth:hash -- "your-password"
-```
-
-ضع الناتج في `ADMIN_PASSWORD_HASH`.
 
 ## التشغيل المحلي
 
@@ -161,10 +149,9 @@ http://localhost:3000
 
 ## الأمان
 
-- Authentication مطلوب لكل الصفحات والـ API عبر `src/proxy.ts` (اسم middleware في Next.js 16، ويجب أن يكون داخل `src/`).
-- Rate limiting للبحث والاعتماد وفاحص الروابط وExcel.
+- الموقع مفتوح بدون تسجيل دخول. أي شخص لديه الرابط يستطيع البحث واعتماد الصور وحذفها وتغيير الإعدادات، ويستهلك ذلك رصيد SerpAPI والتخزين. لتقييد الوصول يمكن تفعيل Vercel Authentication أو Password Protection من إعدادات المشروع في Vercel.
+- Rate limiting للبحث والاعتماد والحذف والإعدادات وفاحص الروابط وExcel (يُفضّل ضبط Upstash Redis في الإنتاج).
 - SSRF protection يمنع localhost والشبكات الخاصة وmetadata endpoints وIP ranges المحظورة، بما فيها صيغ IPv6 المدمجة مثل `::ffff:7f00:1`.
-- بعد تسجيل الدخول لا يُسمح بالتحويل إلا لمسارات داخلية (منع Open Redirect).
 - لا يتم الوثوق بامتداد الرابط؛ يتم فحص MIME وMagic Bytes وImage Decoder.
 - لا يتم استخدام `/public/uploads` أو `/tmp` كتخزين دائم.
 - لا توجد Secrets داخل الكود.

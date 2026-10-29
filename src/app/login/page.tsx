@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { LoginClient } from "@/components/LoginClient";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "تسجيل الدخول" };
-
+// الموقع لم يعد يحتاج تسجيل دخول؛ أي رابط قديم لصفحة الدخول يحوّل للرئيسية.
 export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginClient />
-    </Suspense>
-  );
+  redirect("/");
 }

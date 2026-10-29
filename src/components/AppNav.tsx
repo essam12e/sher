@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Link2, LogOut, Menu, X } from "lucide-react";
+import { Link2, Menu, X } from "lucide-react";
 import { isActive, navItems } from "@/lib/nav";
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -17,17 +17,6 @@ function Brand({ compact = false }: { compact?: boolean }) {
         {compact ? null : <span className="block truncate text-xs font-bold text-slate-500">محول الصور لرابط</span>}
       </span>
     </Link>
-  );
-}
-
-function LogoutButton({ className = "" }: { className?: string }) {
-  return (
-    <form action="/api/auth/logout" method="post" className={className}>
-      <button className="btn-outline w-full">
-        <LogOut className="h-4 w-4" />
-        تسجيل الخروج
-      </button>
-    </form>
   );
 }
 
@@ -89,7 +78,6 @@ export function AppNav() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <NavLinks pathname={pathname} />
         </div>
-        <LogoutButton className="pt-4" />
       </aside>
 
       {/* الشريط العلوي للجوال والتابلت */}
@@ -140,8 +128,7 @@ export function AppNav() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
           </div>
-          <LogoutButton className="pt-4" />
-        </div>
+          </div>
       </div>
 
       {/* شريط التنقل السفلي للجوال */}
