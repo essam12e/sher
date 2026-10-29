@@ -105,7 +105,7 @@ export function LibraryClient() {
     return (
       <div className="empty-state">
         لا توجد صور مستضافة بعد.{" "}
-        <Link href="/" className="text-emerald-700 underline underline-offset-4">
+        <Link href="/" className="text-brand-600 underline underline-offset-4">
           ابحث عن منتج واعتمد صورته
         </Link>{" "}
         لتظهر هنا.

@@ -3,18 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Link2, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { isActive, navItems } from "@/lib/nav";
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex min-w-0 items-center gap-2.5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-700 text-white">
-        <Link2 className="h-5 w-5" />
-      </span>
+    <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="نطاق — الرئيسية">
+      {/* eslint-disable-next-line @next/next/no-img-element -- شعار ثابت صغير */}
+      <img src="/logo-mark.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0 object-contain" />
       <span className="min-w-0">
-        <span className="block truncate text-base font-extrabold leading-5 text-slate-950">نطاق</span>
-        {compact ? null : <span className="block truncate text-xs font-bold text-slate-500">محول الصور لرابط</span>}
+        <span className="block truncate text-lg font-extrabold leading-6 text-brand-600">نطاق</span>
+        {compact ? null : <span className="block truncate text-xs font-bold text-accent-600">من صورة إلى رابط</span>}
       </span>
     </Link>
   );
@@ -34,10 +33,10 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
             aria-current={active ? "page" : undefined}
             className={[
               "flex min-h-12 items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold transition",
-              active ? "bg-emerald-50 text-emerald-800" : "text-slate-700 hover:bg-slate-100 hover:text-slate-950",
+              active ? "bg-brand-50 text-brand-700" : "text-slate-700 hover:bg-slate-100 hover:text-slate-950",
             ].join(" ")}
           >
-            <Icon className={["h-5 w-5 shrink-0", active ? "text-emerald-700" : "text-slate-400"].join(" ")} />
+            <Icon className={["h-5 w-5 shrink-0", active ? "text-brand-600" : "text-slate-400"].join(" ")} />
             <span className="min-w-0">
               <span className="block">{item.label}</span>
               <span className="block text-xs font-medium text-slate-500">{item.hint}</span>
@@ -147,7 +146,7 @@ export function AppNav() {
                 aria-current={active ? "page" : undefined}
                 className={[
                   "flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-[11px] font-bold",
-                  active ? "text-emerald-700" : "text-slate-500",
+                  active ? "text-brand-600" : "text-slate-500",
                 ].join(" ")}
               >
                 <Icon className="h-5 w-5" />

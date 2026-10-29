@@ -239,7 +239,7 @@ export function ProductSearchClient({
                 }}
                 className={[
                   "flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-extrabold transition sm:text-sm",
-                  mode === id ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600 hover:text-slate-900",
+                  mode === id ? "bg-white text-brand-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
                 ].join(" ")}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -336,12 +336,12 @@ export function ProductSearchClient({
 
         {mode === "upload" ? (
           <form onSubmit={convertFile} className="mt-4">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 p-4 text-center transition hover:border-emerald-400 hover:bg-emerald-50/40">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 p-4 text-center transition hover:border-brand-400 hover:bg-brand-50/40">
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element -- معاينة محلية
                 <img src={preview} alt="معاينة" className="max-h-48 rounded-lg object-contain" />
               ) : (
-                <Upload className="h-8 w-8 text-emerald-700" />
+                <Upload className="h-8 w-8 text-brand-600" />
               )}
               <span className="break-all text-sm font-extrabold text-slate-900">{file ? file.name : "اختر صورة من جهازك أو التقط صورة"}</span>
               <span className="text-xs font-bold text-slate-500">JPG, PNG, WEBP, HEIC — الصور الكبيرة تُضغط تلقائيًا</span>
@@ -367,7 +367,7 @@ export function ProductSearchClient({
       ) : null}
 
       {hosted ? (
-        <section ref={hostedRef} className="card scroll-mt-20 border-emerald-200">
+        <section ref={hostedRef} className="card scroll-mt-20 border-brand-200">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-extrabold text-slate-950 sm:text-xl">
               {hosted.duplicate ? "الصورة محفوظة مسبقًا — الرابط جاهز" : "الرابط جاهز للاستخدام"}

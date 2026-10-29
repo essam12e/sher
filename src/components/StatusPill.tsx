@@ -14,7 +14,7 @@ export function StatusPill({ value, label }: { value: string; label?: string }) 
     <span
       className={[
         "inline-flex shrink-0 items-center whitespace-nowrap rounded-md px-2 py-1 text-xs font-extrabold",
-        good ? "bg-emerald-50 text-emerald-700" : warn ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700",
+        good ? "bg-brand-50 text-brand-600" : warn ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700",
       ].join(" ")}
     >
       {label ?? labels[value] ?? value}

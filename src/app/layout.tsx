@@ -13,7 +13,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "نطاق | محول الصور لرابط",
+    default: "نطاق | من صورة إلى رابط",
     template: "%s | نطاق",
   },
   description: "ابحث عن صورة المنتج، افحصها، واستضفها كرابط HTTPS مباشر وثابت جاهز لسلة وزد وShopify وWooCommerce.",
@@ -27,7 +27,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#047857",
+  themeColor: "#0055FD",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

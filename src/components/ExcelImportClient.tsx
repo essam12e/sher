@@ -26,7 +26,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   return (
     <section className="card">
       <h2 className="mb-4 flex items-center gap-2.5 text-base font-extrabold text-slate-950">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-700 text-sm text-white">{n}</span>
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-600 text-sm text-white">{n}</span>
         {title}
       </h2>
       {children}
@@ -127,7 +127,7 @@ export function ExcelImportClient() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm font-bold leading-7 text-emerald-900">
+      <div className="rounded-xl border border-brand-100 bg-brand-50/70 p-4 text-sm font-bold leading-7 text-brand-800">
         ارفع ملف منتجات متجرك، وسيتم تعبئة عمود الصورة تلقائيًا من الصور التي اعتمدتها في المكتبة (بالمطابقة عبر SKU ثم اسم المنتج).
         الملف الأصلي لا يتغير، وتحصل على نسخة جديدة جاهزة للرفع في سلة أو زد.
       </div>
@@ -136,7 +136,7 @@ export function ExcelImportClient() {
         {file ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800">
-              <FileSpreadsheet className="h-5 w-5 shrink-0 text-emerald-700" />
+              <FileSpreadsheet className="h-5 w-5 shrink-0 text-brand-600" />
               <span className="ltr truncate">{file.name}</span>
               {preview ? <span className="shrink-0 text-xs text-slate-500">({preview.totalRows} صف)</span> : null}
             </div>
@@ -146,11 +146,11 @@ export function ExcelImportClient() {
             </button>
           </div>
         ) : (
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-10 text-center transition hover:border-emerald-400 hover:bg-emerald-50/40">
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 px-4 py-10 text-center transition hover:border-brand-400 hover:bg-brand-50/40">
             {loading ? (
-              <Loader2 className="mb-3 h-8 w-8 animate-spin text-emerald-700" />
+              <Loader2 className="mb-3 h-8 w-8 animate-spin text-brand-600" />
             ) : (
-              <FileSpreadsheet className="mb-3 h-8 w-8 text-emerald-700" />
+              <FileSpreadsheet className="mb-3 h-8 w-8 text-brand-600" />
             )}
             <span className="font-extrabold text-slate-900">{loading ? "جاري قراءة الملف..." : "اضغط لاختيار ملف xlsx"}</span>
             <span className="mt-1 text-xs font-bold text-slate-500">الحد الأقصى 10MB</span>
@@ -228,7 +228,7 @@ export function ExcelImportClient() {
                         return (
                           <th
                             key={header}
-                            className={["whitespace-nowrap p-3", role ? "bg-emerald-100 text-emerald-900" : ""].join(" ")}
+                            className={["whitespace-nowrap p-3", role ? "bg-brand-100 text-brand-800" : ""].join(" ")}
                           >
                             {header}
                           </th>
@@ -258,7 +258,7 @@ export function ExcelImportClient() {
                 type="checkbox"
                 checked={overwrite}
                 onChange={(event) => setOverwrite(event.target.checked)}
-                className="mt-1 h-5 w-5 shrink-0 accent-emerald-700"
+                className="mt-1 h-5 w-5 shrink-0 accent-brand-600"
               />
               <span>استبدال الروابط الموجودة في الملف إذا وُجدت صورة أحدث في المكتبة</span>
             </label>

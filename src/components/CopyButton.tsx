@@ -56,7 +56,7 @@ export function CopyButton({
   if (iconOnly) {
     return (
       <button type="button" onClick={onClick} title={text_} aria-label={text_} className={className ?? "icon-btn"}>
-        <Icon className={["h-4 w-4", state === "done" ? "text-emerald-700" : ""].join(" ")} />
+        <Icon className={["h-4 w-4", state === "done" ? "text-brand-600" : ""].join(" ")} />
       </button>
     );
   }

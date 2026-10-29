@@ -61,12 +61,12 @@ export function BulkSearchClient() {
                     className={[
                       "flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-right text-sm font-bold transition",
                       active
-                        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        ? "border-brand-300 bg-brand-50 text-brand-700"
                         : "border-slate-200 text-slate-700 hover:bg-slate-50",
                     ].join(" ")}
                   >
                     {done ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-500" />
                     ) : (
                       <Search className="h-4 w-4 shrink-0 text-slate-400" />
                     )}
@@ -86,8 +86,8 @@ export function BulkSearchClient() {
       <section ref={searchRef} className="min-w-0 scroll-mt-20">
         {selected ? (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
-              <div className="min-w-0 text-sm font-extrabold text-emerald-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 p-3 sm:p-4">
+              <div className="min-w-0 text-sm font-extrabold text-brand-700">
                 المنتج الحالي: <span className="break-words">{selected}</span>
               </div>
               {nextProduct ? (
