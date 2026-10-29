@@ -8,7 +8,7 @@ export function slugify(value: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
-  return ascii || "product";
+  return ascii.length >= 3 ? ascii.slice(0, 60) : "product";
 }
 
 export function storageKeyForImage(product: ProductInput, hash: string, extension: string) {

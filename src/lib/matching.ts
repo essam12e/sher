@@ -25,17 +25,24 @@ function modelConflict(productModel: string | undefined, text: string) {
 export function productMatchScore(product: ProductInput, evidence: string) {
   const text = normalizeText(evidence);
   const tokens = tokenize(product.name);
-  const matchedTokens = tokens.filter((token) => includesExactToken(text, token)).length;
-  let score = tokens.length ? Math.round((matchedTokens / tokens.length) * 40) : 0;
 
-  if (product.brand && includesExactToken(text, product.brand)) score += 20;
-  if (product.model && includesExactToken(text, product.model)) score += 25;
-  if (product.sku && includesExactToken(text, product.sku)) score += 10;
-  if (product.color && includesExactToken(text, product.color)) score += 3;
-  if (product.variant && includesExactToken(text, product.variant)) score += 2;
+  // كل حقل يدخل في النسبة فقط إذا كتبه المستخدم، حتى يصل التطابق الكامل إلى 100
+  const fields: { weight: number; value?: string }[] = [
+    { weight: 25, value: product.brand },
+    { weight: 25, value: product.model },
+    { weight: 10, value: product.sku },
+    { weight: 4, value: product.color },
+    { weight: 3, value: product.variant },
+  ].filter((field) => field.value?.trim());
 
-  if (product.model && !includesExactToken(text, product.model)) score -= 25;
-  if (product.brand && !includesExactToken(text, product.brand)) score -= 10;
+  const nameWeight = 60;
+  const totalWeight = nameWeight + fields.reduce((sum, field) => sum + field.weight, 0);
+  const nameRatio = tokens.length ? tokens.filter((token) => includesExactToken(text, token)).length / tokens.length : 0;
+  let earned = nameRatio * nameWeight;
+  for (const field of fields) if (includesExactToken(text, field.value ?? "")) earned += field.weight;
+
+  let score = Math.round((earned / totalWeight) * 100);
+  if (product.model && !includesExactToken(text, product.model)) score -= 15;
   if (modelConflict(product.model, text)) score -= 35;
 
   return Math.max(0, Math.min(100, score));
