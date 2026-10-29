@@ -3,7 +3,7 @@ import { z } from "zod";
 import { apiError } from "@/lib/api";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { MAX_EXCEL_BYTES, exportWorkbookWithImageUrls } from "@/lib/excel";
-import { hostedImageUpdates } from "@/lib/excel-updates";
+import { listRecords } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
     const sheetName = formData.get("sheetName");
     const overwriteExisting = formData.get("overwriteExisting") !== "false";
 
-    const updates = await hostedImageUpdates();
+    const records = await listRecords(5000);
+    const updates = records
+      .filter((record) => record.compatibilityStatus === "READY")
+      .map((record) => ({ sku: record.product.sku ?? undefined, productName: record.product.name, hostedUrl: record.publicUrl }));
     if (!updates.length) throw new Error("مكتبة الصور فارغة. اعتمد صورًا للمنتجات أولًا ثم صدّر الملف.");
 
     const { buffer, changedRows, unmatchedRows } = await exportWorkbookWithImageUrls({

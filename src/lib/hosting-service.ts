@@ -1,8 +1,7 @@
-import { prisma } from "@/lib/db";
-import { fetchExternalImage } from "@/lib/http";
-import { productMatchScore, imageQualityScore } from "@/lib/matching";
-import { getStorageProvider } from "@/lib/storage";
+import { fetchImageWithFallbacks } from "@/lib/http";
+import { imageQualityScore, productMatchScore } from "@/lib/matching";
 import { storageKeyForImage } from "@/lib/storage-key";
+import { getImageLimits, getRecord, saveRecord, uploadImage, assertStorage, type HostedRecord } from "@/lib/store";
 import type { ProductInput } from "@/lib/types";
 import {
   detectWatermarkFromEvidence,
@@ -12,131 +11,129 @@ import {
   validateMinimumDimensions,
   validatePublicImageUrl,
 } from "@/lib/image/validation";
-import { getRuntimeImageLimits } from "@/lib/settings";
 
-/** يعيد استخدام سجل المنتج الموجود (حسب SKU أو الاسم) بدل إنشاء سجل مكرر في كل اعتماد. */
-async function findOrCreateProduct(input: ProductInput) {
-  const name = input.name.trim();
-  const sku = input.sku?.trim() || null;
-  const existing = sku
-    ? await prisma.product.findFirst({ where: { sku }, orderBy: { createdAt: "desc" } })
-    : await prisma.product.findFirst({
-        where: { sku: null, name: { equals: name, mode: "insensitive" } },
-        orderBy: { createdAt: "desc" },
-      });
-  if (existing) return existing;
+export type HostResult = {
+  duplicate: boolean;
+  steps: string[];
+  hostedImage: HostedRecord;
+  compatibility: HostedRecord["compatibilityReport"];
+};
 
-  return prisma.product.create({
-    data: {
-      name,
-      sku,
-      brand: input.brand?.trim() || null,
-      model: input.model?.trim() || null,
-      color: input.color?.trim() || null,
-      variant: input.variant?.trim() || null,
-    },
-  });
+function cleanProduct(input: ProductInput) {
+  return {
+    name: input.name?.trim() || "صورة منتج",
+    sku: input.sku?.trim() || null,
+    brand: input.brand?.trim() || null,
+    model: input.model?.trim() || null,
+  };
 }
 
-export async function approveAndHostImage(input: {
+async function testUrl(url: string, minWidth: number, minHeight: number) {
+  // محاولة ثانية بعد لحظة في حال لم يكن الملف قد انتشر على CDN بعد
+  let report = await validatePublicImageUrl(url, minWidth, minHeight);
+  if (report.status !== "READY") {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    report = await validatePublicImageUrl(url, minWidth, minHeight);
+  }
+  return report;
+}
+
+/** المسار الكامل: صورة خام -> فحص -> معالجة -> رفع -> اختبار الرابط -> حفظ البيانات */
+export async function hostImageBuffer(input: {
+  buffer: Buffer;
   product: ProductInput;
   sourceUrl: string;
   searchEvidence?: string;
-}) {
-  const limits = await getRuntimeImageLimits();
-  const steps: string[] = ["Fetching Original"];
+}): Promise<HostResult> {
+  assertStorage();
+  const limits = await getImageLimits();
+  const steps = ["Validating"];
 
-  const fetched = await fetchExternalImage(input.sourceUrl, {
-    maxBytes: limits.maxFileSize,
-    timeoutMs: 12_000,
-    maxRedirects: 4,
-    retries: 2,
-  });
+  if (input.buffer.length > limits.maxFileSize) {
+    throw new Error(`حجم الصورة أكبر من ${Math.round(limits.maxFileSize / 1024 / 1024)}MB.`);
+  }
 
-  steps.push("Validating");
-  const original = await inspectImageBuffer(fetched.buffer);
+  const original = await inspectImageBuffer(input.buffer);
   validateMinimumDimensions(original.width, original.height, limits.minWidth, limits.minHeight);
 
-  const originalHash = sha256(fetched.buffer);
-  const duplicate = await prisma.hostedImage.findUnique({ where: { hash: originalHash }, include: { product: true } });
-  if (duplicate) {
-    const report = await validatePublicImageUrl(duplicate.publicUrl, limits.minWidth, limits.minHeight);
-    return {
-      duplicate: true,
-      steps: [...steps, "Testing URL", report.status],
-      hostedImage: duplicate,
-      compatibility: report,
-    };
-  }
-
   steps.push("Processing");
-  const processed = await processImage(fetched.buffer, original.mimeType, original.hasAlpha);
-  const processedInfo = await inspectImageBuffer(processed.buffer);
-  const processedHash = sha256(processed.buffer);
-  const duplicateProcessed = await prisma.hostedImage.findUnique({ where: { hash: processedHash }, include: { product: true } });
-  if (duplicateProcessed) {
-    const report = await validatePublicImageUrl(duplicateProcessed.publicUrl, limits.minWidth, limits.minHeight);
-    return {
-      duplicate: true,
-      steps: [...steps, "Testing URL", report.status],
-      hostedImage: duplicateProcessed,
-      compatibility: report,
-    };
+  const processed = await processImage(input.buffer, original.mimeType, original.hasAlpha);
+  const info = await inspectImageBuffer(processed.buffer);
+  const id = sha256(processed.buffer);
+
+  const existing = await getRecord(id);
+  if (existing) {
+    const report = await testUrl(existing.publicUrl, limits.minWidth, limits.minHeight);
+    return { duplicate: true, steps: [...steps, "Testing URL", report.status], hostedImage: existing, compatibility: report };
   }
 
-  const storageKey = storageKeyForImage(input.product, processedHash, processed.extension);
-  const storage = getStorageProvider();
+  const product = cleanProduct(input.product);
+  const key = storageKeyForImage({ name: product.name, sku: product.sku ?? undefined }, id, processed.extension);
 
   steps.push("Uploading");
-  const upload = await storage.uploadImage({
-    key: storageKey,
-    buffer: processed.buffer,
-    contentType: processed.mimeType,
-  });
+  const publicUrl = await uploadImage(key, processed.buffer, processed.mimeType);
 
   steps.push("Testing URL");
-  const compatibility = await validatePublicImageUrl(upload.publicUrl, limits.minWidth, limits.minHeight);
+  const compatibility = await testUrl(publicUrl, limits.minWidth, limits.minHeight);
   if (compatibility.status !== "READY") {
-    throw new Error(compatibility.reason ?? "تعذر الوصول للرابط العام.");
+    throw new Error(compatibility.reason ?? "تعذر الوصول للرابط العام بعد الرفع.");
   }
 
-  const product = await findOrCreateProduct(input.product);
-
   const evidence = [input.searchEvidence, input.sourceUrl].filter(Boolean).join(" ");
-  const matchScore = productMatchScore(input.product, evidence);
+  const matchScore = input.searchEvidence ? productMatchScore(input.product, evidence) : 100;
   const watermarkStatus = detectWatermarkFromEvidence(evidence);
-  const qualityScore = imageQualityScore({
-    matchScore,
-    width: processedInfo.width,
-    height: processedInfo.height,
-    watermarkStatus,
+
+  const record: HostedRecord = {
+    id,
+    publicUrl,
+    imageKey: key,
+    sourceUrl: input.sourceUrl,
+    width: info.width,
+    height: info.height,
     mimeType: processed.mimeType,
-  });
-
-  const hostedImage = await prisma.hostedImage.create({
-    data: {
-      productId: product.id,
-      sourceUrl: input.sourceUrl,
-      storageKey: upload.storageKey,
-      publicUrl: upload.publicUrl,
-      hash: processedHash,
-      width: processedInfo.width,
-      height: processedInfo.height,
-      mimeType: processed.mimeType,
-      fileSize: processed.buffer.length,
+    fileSize: processed.buffer.length,
+    matchScore,
+    qualityScore: imageQualityScore({
       matchScore,
-      qualityScore,
+      width: info.width,
+      height: info.height,
       watermarkStatus,
-      compatibilityStatus: compatibility.status,
-      compatibilityReport: compatibility,
-    },
-    include: { product: true },
+      mimeType: processed.mimeType,
+    }),
+    watermarkStatus,
+    compatibilityStatus: compatibility.status,
+    compatibilityReport: compatibility,
+    createdAt: new Date().toISOString(),
+    product,
+  };
+  await saveRecord(record);
+
+  return { duplicate: false, steps: [...steps, "READY"], hostedImage: record, compatibility };
+}
+
+/** تحويل رابط صورة (أو صفحة منتج) إلى رابط مستضاف */
+export async function hostImageFromUrl(input: {
+  product: ProductInput;
+  sourceUrl: string;
+  fallbackUrl?: string;
+  pageUrl?: string;
+  searchEvidence?: string;
+}) {
+  assertStorage();
+  const limits = await getImageLimits();
+  const fetched = await fetchImageWithFallbacks([input.sourceUrl, input.fallbackUrl], {
+    maxBytes: limits.maxFileSize,
+    timeoutMs: 15_000,
+    maxRedirects: 5,
+    retries: 1,
+    referer: input.pageUrl,
+    resolveHtml: true,
   });
 
-  return {
-    duplicate: false,
-    steps: [...steps, "READY"],
-    hostedImage,
-    compatibility,
-  };
+  return hostImageBuffer({
+    buffer: fetched.buffer,
+    product: input.product,
+    sourceUrl: fetched.finalUrl,
+    searchEvidence: input.searchEvidence,
+  });
 }

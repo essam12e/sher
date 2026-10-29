@@ -21,6 +21,7 @@ export type ImageSearchResult = {
   pageUrl?: string;
   thumbnailUrl?: string;
   originalUrl: string;
+  fallbackUrl?: string;
   fileName?: string;
   mimeType?: string;
   width?: number;
@@ -31,6 +32,7 @@ export type ImageSearchResult = {
   watermarkStatus: WatermarkStatus;
   isAcceptable: boolean;
   rejectionReason?: string;
+  usedFallback?: boolean;
 };
 
 export type CompatibilityCheck = {

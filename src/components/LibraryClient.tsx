@@ -38,6 +38,7 @@ export function LibraryClient() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setImages(data.images);
+      if (data.storageConfigured === false) setError("التخزين غير مفعّل بعد في Vercel، لذلك لا توجد صور محفوظة.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذر تحميل مكتبة الصور.");
     } finally {

@@ -3,7 +3,7 @@ import { FileSpreadsheet, Layers, Library, Search, Settings, ShieldCheck, type L
 export type NavItem = { href: string; label: string; hint: string; icon: LucideIcon };
 
 export const navItems: NavItem[] = [
-  { href: "/", label: "بحث الصور", hint: "منتج واحد", icon: Search },
+  { href: "/", label: "صورة إلى رابط", hint: "بحث، لصق، أو رفع", icon: Search },
   { href: "/bulk-search", label: "البحث الجماعي", hint: "قائمة منتجات", icon: Layers },
   { href: "/library", label: "مكتبة الصور", hint: "الروابط الجاهزة", icon: Library },
   { href: "/import-excel", label: "تعبئة Excel", hint: "روابط لملف المتجر", icon: FileSpreadsheet },

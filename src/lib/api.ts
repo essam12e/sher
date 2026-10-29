@@ -21,3 +21,8 @@ export const productSchema = z.object({
   color: z.string().optional().default(""),
   variant: z.string().optional().default(""),
 });
+
+/** لتحويل رابط أو رفع صورة: اسم المنتج اختياري */
+export const optionalProductSchema = productSchema.extend({
+  name: z.string().trim().max(200).optional().default(""),
+});

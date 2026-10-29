@@ -3,7 +3,7 @@ import { fileTypeFromBuffer } from "file-type";
 import type { CompatibilityCheck, WatermarkStatus } from "@/lib/types";
 import { fetchExternalImage } from "@/lib/http";
 
-const supportedMimes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const supportedMimes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif", "image/bmp", "image/tiff"]);
 
 async function loadSharp() {
   const mod = await import("sharp");
@@ -37,7 +37,10 @@ export function sha256(buffer: Buffer) {
 
 export async function processImage(buffer: Buffer, mimeType: string, hasAlpha: boolean) {
   const sharp = await loadSharp();
-  const image = sharp(buffer).rotate().withMetadata({ exif: undefined });
+  // تدوير حسب EXIF، حذف بيانات الكاميرا، وتصغير الصور الضخمة جدًا إلى 2000px لتناسب المتاجر
+  const image = sharp(buffer, { animated: false })
+    .rotate()
+    .resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true });
   if (mimeType === "image/png" && hasAlpha) {
     return {
       buffer: await image.png({ compressionLevel: 9, effort: 8 }).toBuffer(),
@@ -47,7 +50,7 @@ export async function processImage(buffer: Buffer, mimeType: string, hasAlpha: b
   }
 
   return {
-    buffer: await image.jpeg({ quality: 88, mozjpeg: true }).toBuffer(),
+    buffer: await image.flatten({ background: "#ffffff" }).jpeg({ quality: 88, mozjpeg: true }).toBuffer(),
     mimeType: "image/jpeg",
     extension: "jpg",
   };

@@ -97,7 +97,7 @@ export function BulkSearchClient() {
                 </button>
               ) : null}
             </div>
-            <ProductSearchClient key={selected} initialName={selected} autoSearch />
+            <ProductSearchClient key={selected} initialName={selected} autoSearch showModes={false} />
           </div>
         ) : (
           <div className="empty-state">اختر منتجًا من القائمة لبدء البحث.</div>

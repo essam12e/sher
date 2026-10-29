@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { enforceRateLimit } from "@/lib/rate-limit";
-import { prisma } from "@/lib/db";
-import { getStorageProvider } from "@/lib/storage";
 import { apiError } from "@/lib/api";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { deleteRecord, getRecord } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,11 +12,9 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
   try {
     const { id } = await context.params;
-    const image = await prisma.hostedImage.findUnique({ where: { id } });
-    if (!image) return NextResponse.json({ error: "الصورة غير موجودة." }, { status: 404 });
-
-    await getStorageProvider().deleteImage(image.storageKey);
-    await prisma.hostedImage.delete({ where: { id } });
+    const record = await getRecord(id);
+    if (!record) return NextResponse.json({ error: "الصورة غير موجودة." }, { status: 404 });
+    await deleteRecord(record);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return apiError(error);

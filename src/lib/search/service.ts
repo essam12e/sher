@@ -1,26 +1,17 @@
-import { fetchExternalImage } from "@/lib/http";
+import { fetchImageWithFallbacks } from "@/lib/http";
 import { imageQualityScore, productMatchScore } from "@/lib/matching";
 import { buildSearchQuery } from "@/lib/query";
-import { getImageSearchProvider } from "@/lib/search";
-import type { RawImageSearchResult } from "@/lib/search/provider";
+import { searchWebImages, type RawImageSearchResult } from "@/lib/search/web";
 import type { ImageSearchResult, ProductInput } from "@/lib/types";
 import { detectWatermarkFromEvidence, inspectImageBuffer } from "@/lib/image/validation";
-import { getRuntimeImageLimits } from "@/lib/settings";
+import { getImageLimits } from "@/lib/store";
 
-// الدليل يُبنى من بيانات النتيجة فقط. سابقًا كانت بيانات المنتج نفسها تُضاف للنص
-// فتحصل كل النتائج تقريبًا على Match Score مرتفع حتى لو كانت لمنتج آخر.
+type Limits = Awaited<ReturnType<typeof getImageLimits>>;
+
+// الدليل يُبنى من بيانات النتيجة فقط، وليس من بيانات المنتج المدخلة
 function evidenceFor(result: RawImageSearchResult) {
-  return [
-    result.title,
-    result.source,
-    result.fileName,
-    result.originalUrl,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  return [result.title, result.source, result.fileName, result.originalUrl].filter(Boolean).join(" ");
 }
-
-type Limits = Awaited<ReturnType<typeof getRuntimeImageLimits>>;
 
 async function enrichResult(
   product: ProductInput,
@@ -37,22 +28,26 @@ async function enrichResult(
   let mimeType: string | undefined;
   let fileSize: number | undefined;
   let rejectionReason: string | undefined;
+  let usedFallback = false;
 
   try {
-    const original = await fetchExternalImage(result.originalUrl, {
+    // نفحص الصورة الأصلية فعليًا (وليس المصغّرة) ونجرب نسخة محرك البحث إن منع الموقع التحميل
+    const original = await fetchImageWithFallbacks([result.originalUrl, result.fallbackUrl], {
       maxBytes: limits.maxFileSize,
-      timeoutMs: 8_000,
+      timeoutMs: 7_000,
       maxRedirects: 4,
-      retries: 1,
+      retries: 0,
+      referer: result.pageUrl,
     });
     const image = await inspectImageBuffer(original.buffer);
     width = image.width;
     height = image.height;
     mimeType = image.mimeType;
     fileSize = original.buffer.length;
+    usedFallback = original.usedFallback;
 
     if (width < limits.minWidth || height < limits.minHeight) {
-      rejectionReason = "الصورة أقل من الحد المطلوب";
+      rejectionReason = `الصورة ${width}×${height} أقل من الحد المطلوب ${limits.minWidth}×${limits.minHeight}`;
     }
   } catch (error) {
     rejectionReason = error instanceof Error ? error.message : "تعذر فحص الصورة الأصلية";
@@ -61,12 +56,13 @@ async function enrichResult(
   const qualityScore = imageQualityScore({ matchScore, width, height, watermarkStatus, mimeType });
 
   return {
-    id: `${index}-${Buffer.from(result.originalUrl).toString("base64url").slice(0, 16)}`,
+    id: `${index}-${Buffer.from(result.originalUrl).toString("base64url").slice(-16)}`,
     title: result.title,
     source: result.source,
     pageUrl: result.pageUrl,
     thumbnailUrl: result.thumbnailUrl,
     originalUrl: result.originalUrl,
+    fallbackUrl: result.fallbackUrl,
     fileName: result.fileName,
     width,
     height,
@@ -77,28 +73,18 @@ async function enrichResult(
     watermarkStatus,
     isAcceptable: !rejectionReason && width !== undefined && height !== undefined,
     rejectionReason,
+    usedFallback,
   };
 }
 
 export async function searchProductImages(product: ProductInput) {
-  const provider = getImageSearchProvider();
   const query = buildSearchQuery(product);
   if (!query) throw new Error("اكتب اسم المنتج أو بياناته أولًا.");
 
-  const [rawResults, limits] = await Promise.all([
-    provider.searchImages({ ...product, query, limit: 24 }),
-    getRuntimeImageLimits(),
-  ]);
+  const [rawResults, limits] = await Promise.all([searchWebImages(query, 24), getImageLimits()]);
+  if (!rawResults.length) return [];
 
-  // إزالة الروابط المكررة قبل الفحص لتوفير الوقت.
-  const seen = new Set<string>();
-  const unique = rawResults.filter((result) => {
-    if (!result.originalUrl || seen.has(result.originalUrl)) return false;
-    seen.add(result.originalUrl);
-    return true;
-  });
-
-  const top = unique.slice(0, 12);
+  const top = rawResults.slice(0, 16);
   const enriched = await Promise.all(top.map((result, index) => enrichResult(product, result, index, limits)));
 
   return enriched.sort(

@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { enforceRateLimit } from "@/lib/rate-limit";
-import { prisma } from "@/lib/db";
-import { validatePublicImageUrl } from "@/lib/image/validation";
 import { apiError } from "@/lib/api";
-import { getRuntimeImageLimits } from "@/lib/settings";
+import { validatePublicImageUrl } from "@/lib/image/validation";
+import { enforceRateLimit } from "@/lib/rate-limit";
+import { getImageLimits, getRecord, saveRecord } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,19 +13,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     const { id } = await context.params;
-    const image = await prisma.hostedImage.findUnique({ where: { id } });
-    if (!image) return NextResponse.json({ error: "الصورة غير موجودة." }, { status: 404 });
+    const record = await getRecord(id);
+    if (!record) return NextResponse.json({ error: "الصورة غير موجودة." }, { status: 404 });
 
-    const limits = await getRuntimeImageLimits();
-    const report = await validatePublicImageUrl(image.publicUrl, limits.minWidth, limits.minHeight);
-    const updated = await prisma.hostedImage.update({
-      where: { id },
-      data: {
-        compatibilityStatus: report.status,
-        compatibilityReport: report,
-      },
-      include: { product: true },
-    });
+    const limits = await getImageLimits();
+    const report = await validatePublicImageUrl(record.publicUrl, limits.minWidth, limits.minHeight);
+    const updated = await saveRecord({ ...record, compatibilityStatus: report.status, compatibilityReport: report });
     return NextResponse.json({ image: updated, report });
   } catch (error) {
     return apiError(error);
