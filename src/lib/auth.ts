@@ -21,10 +21,11 @@ export async function verifyPassword(email: string, password: string) {
   const hash = process.env.ADMIN_PASSWORD_HASH;
 
   if (!adminEmail || !hash) {
-    throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD_HASH are required.");
+    throw new Error("لم يتم إعداد حساب المدير. أضف ADMIN_EMAIL و ADMIN_PASSWORD_HASH.");
   }
 
   const emailMatches = email.trim().toLowerCase() === adminEmail.trim().toLowerCase();
+  // نقارن كلمة المرور دائمًا حتى لا يختلف زمن الاستجابة حسب صحة البريد.
   const passwordMatches = await bcrypt.compare(password, hash);
   return emailMatches && passwordMatches;
 }

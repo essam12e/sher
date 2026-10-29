@@ -7,14 +7,10 @@ import type { ImageSearchResult, ProductInput } from "@/lib/types";
 import { detectWatermarkFromEvidence, inspectImageBuffer } from "@/lib/image/validation";
 import { getRuntimeImageLimits } from "@/lib/settings";
 
-function evidenceFor(product: ProductInput, result: RawImageSearchResult) {
+// الدليل يُبنى من بيانات النتيجة فقط. سابقًا كانت بيانات المنتج نفسها تُضاف للنص
+// فتحصل كل النتائج تقريبًا على Match Score مرتفع حتى لو كانت لمنتج آخر.
+function evidenceFor(result: RawImageSearchResult) {
   return [
-    product.name,
-    product.brand,
-    product.model,
-    product.sku,
-    product.color,
-    product.variant,
     result.title,
     result.source,
     result.fileName,
@@ -24,9 +20,15 @@ function evidenceFor(product: ProductInput, result: RawImageSearchResult) {
     .join(" ");
 }
 
-async function enrichResult(product: ProductInput, result: RawImageSearchResult, index: number): Promise<ImageSearchResult> {
-  const limits = await getRuntimeImageLimits();
-  const evidence = evidenceFor(product, result);
+type Limits = Awaited<ReturnType<typeof getRuntimeImageLimits>>;
+
+async function enrichResult(
+  product: ProductInput,
+  result: RawImageSearchResult,
+  index: number,
+  limits: Limits,
+): Promise<ImageSearchResult> {
+  const evidence = evidenceFor(result);
   const matchScore = productMatchScore(product, evidence);
   const watermarkStatus = detectWatermarkFromEvidence(evidence);
 
@@ -83,9 +85,26 @@ export async function searchProductImages(product: ProductInput) {
   const query = buildSearchQuery(product);
   if (!query) throw new Error("اكتب اسم المنتج أو بياناته أولًا.");
 
-  const rawResults = await provider.searchImages({ ...product, query, limit: 24 });
-  const top = rawResults.slice(0, 12);
-  const enriched = await Promise.all(top.map((result, index) => enrichResult(product, result, index)));
+  const [rawResults, limits] = await Promise.all([
+    provider.searchImages({ ...product, query, limit: 24 }),
+    getRuntimeImageLimits(),
+  ]);
 
-  return enriched.sort((a, b) => b.qualityScore - a.qualityScore || b.matchScore - a.matchScore);
+  // إزالة الروابط المكررة قبل الفحص لتوفير الوقت.
+  const seen = new Set<string>();
+  const unique = rawResults.filter((result) => {
+    if (!result.originalUrl || seen.has(result.originalUrl)) return false;
+    seen.add(result.originalUrl);
+    return true;
+  });
+
+  const top = unique.slice(0, 12);
+  const enriched = await Promise.all(top.map((result, index) => enrichResult(product, result, index, limits)));
+
+  return enriched.sort(
+    (a, b) =>
+      Number(b.isAcceptable) - Number(a.isAcceptable) ||
+      b.qualityScore - a.qualityScore ||
+      b.matchScore - a.matchScore,
+  );
 }

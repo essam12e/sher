@@ -16,7 +16,7 @@ export async function getRuntimeImageLimits() {
     const settings = await prisma.setting.findMany({
       where: { key: { in: ["MIN_IMAGE_WIDTH", "MIN_IMAGE_HEIGHT", "MAX_IMAGE_FILE_SIZE_MB"] } },
     });
-    const map = Object.fromEntries(settings.map((setting) => [setting.key, setting.value]));
+    const map = Object.fromEntries(settings.map((setting: { key: string; value: string }) => [setting.key, setting.value]));
     return {
       minWidth: Number(map.MIN_IMAGE_WIDTH ?? fallback.minWidth),
       minHeight: Number(map.MIN_IMAGE_HEIGHT ?? fallback.minHeight),

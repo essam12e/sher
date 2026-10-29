@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-tajawal)", "Arial", "sans-serif"],
+        sans: ["Tajawal", "Arial", "sans-serif"],
       },
     },
   },

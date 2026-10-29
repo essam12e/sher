@@ -31,3 +31,11 @@ test("resolution and quality scores prefer ecommerce-ready images", () => {
     }) > 80,
   );
 });
+
+test("a result for a different product does not get a high match score", () => {
+  const product = { name: "Anker PowerCore 10000", brand: "Anker" };
+  const other = productMatchScore(product, "Xiaomi Mi Power Bank 3 20000mAh xiaomi.com");
+  const same = productMatchScore(product, "Anker PowerCore 10000 Portable Charger anker.com");
+  assert.ok(other < 20);
+  assert.ok(same >= 60);
+});

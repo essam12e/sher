@@ -9,7 +9,7 @@ export async function GET() {
     const images = await prisma.hostedImage.findMany({
       orderBy: { createdAt: "desc" },
       include: { product: true },
-      take: 100,
+      take: 500,
     });
     return NextResponse.json({ images });
   } catch (error) {

@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { fetchExternalImage } from "@/lib/http";
 import { productMatchScore, imageQualityScore } from "@/lib/matching";
-import { buildSearchQuery } from "@/lib/query";
 import { getStorageProvider } from "@/lib/storage";
 import { storageKeyForImage } from "@/lib/storage-key";
 import type { ProductInput } from "@/lib/types";
@@ -14,6 +13,30 @@ import {
   validatePublicImageUrl,
 } from "@/lib/image/validation";
 import { getRuntimeImageLimits } from "@/lib/settings";
+
+/** يعيد استخدام سجل المنتج الموجود (حسب SKU أو الاسم) بدل إنشاء سجل مكرر في كل اعتماد. */
+async function findOrCreateProduct(input: ProductInput) {
+  const name = input.name.trim();
+  const sku = input.sku?.trim() || null;
+  const existing = sku
+    ? await prisma.product.findFirst({ where: { sku }, orderBy: { createdAt: "desc" } })
+    : await prisma.product.findFirst({
+        where: { sku: null, name: { equals: name, mode: "insensitive" } },
+        orderBy: { createdAt: "desc" },
+      });
+  if (existing) return existing;
+
+  return prisma.product.create({
+    data: {
+      name,
+      sku,
+      brand: input.brand?.trim() || null,
+      model: input.model?.trim() || null,
+      color: input.color?.trim() || null,
+      variant: input.variant?.trim() || null,
+    },
+  });
+}
 
 export async function approveAndHostImage(input: {
   product: ProductInput;
@@ -77,18 +100,9 @@ export async function approveAndHostImage(input: {
     throw new Error(compatibility.reason ?? "تعذر الوصول للرابط العام.");
   }
 
-  const product = await prisma.product.create({
-    data: {
-      name: input.product.name,
-      sku: input.product.sku || null,
-      brand: input.product.brand || null,
-      model: input.product.model || null,
-      color: input.product.color || null,
-      variant: input.product.variant || null,
-    },
-  });
+  const product = await findOrCreateProduct(input.product);
 
-  const evidence = [buildSearchQuery(input.product), input.searchEvidence, input.sourceUrl].filter(Boolean).join(" ");
+  const evidence = [input.searchEvidence, input.sourceUrl].filter(Boolean).join(" ");
   const matchScore = productMatchScore(input.product, evidence);
   const watermarkStatus = detectWatermarkFromEvidence(evidence);
   const qualityScore = imageQualityScore({

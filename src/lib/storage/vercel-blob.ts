@@ -1,4 +1,4 @@
-import { del, head, put } from "@vercel/blob";
+import { BlobNotFoundError, del, head, put } from "@vercel/blob";
 import type { StorageProvider, UploadImageInput } from "@/lib/storage/provider";
 
 export class VercelBlobStorageProvider implements StorageProvider {
@@ -16,8 +16,14 @@ export class VercelBlobStorageProvider implements StorageProvider {
   }
 
   async deleteImage(key: string) {
-    const url = await this.getPublicUrl(key);
-    await del(url);
+    try {
+      const url = await this.getPublicUrl(key);
+      await del(url);
+    } catch (error) {
+      // إذا كان الملف محذوفًا مسبقًا من التخزين نكمل حذف السجل من قاعدة البيانات.
+      if (error instanceof BlobNotFoundError) return;
+      throw error;
+    }
   }
 
   async getPublicUrl(key: string) {

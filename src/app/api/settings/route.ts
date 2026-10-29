@@ -14,7 +14,7 @@ const schema = z.object({
 export async function GET() {
   try {
     const settings = await prisma.setting.findMany();
-    const map = Object.fromEntries(settings.map((setting) => [setting.key, setting.value]));
+    const map = Object.fromEntries(settings.map((setting: { key: string; value: string }) => [setting.key, setting.value]));
     return NextResponse.json({
       minWidth: Number(map.MIN_IMAGE_WIDTH ?? process.env.MIN_IMAGE_WIDTH ?? 500),
       minHeight: Number(map.MIN_IMAGE_HEIGHT ?? process.env.MIN_IMAGE_HEIGHT ?? 500),
